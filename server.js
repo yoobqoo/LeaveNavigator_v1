@@ -120,13 +120,7 @@ const server = http.createServer((req, res) => {
                     <input type="hidden" id="pregnancyType" required>
                 </div>
                 
-                <div class="form-group">
-                    <label for="actualBirthDate">실제 출산일 (선택사항)</label>
-                    <input type="date" id="actualBirthDate">
-                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
-                        조산이나 연기된 경우 실제 출산일을 입력하면 더 정확한 계산이 가능합니다
-                    </small>
-                </div>
+
                 
                 <button type="submit" class="btn-primary">휴가 기간 계산하기</button>
             </form>
@@ -166,7 +160,6 @@ const server = http.createServer((req, res) => {
             e.preventDefault();
             
             const dueDate = document.getElementById('dueDate').value;
-            const actualBirthDate = document.getElementById('actualBirthDate').value;
             const applicant = selectedApplicant;
             const pregnancyType = selectedPregnancyType;
             
@@ -180,7 +173,7 @@ const server = http.createServer((req, res) => {
             document.getElementById('result').style.display = 'none';
             
             try {
-                const result = calculateMaternityLeave(dueDate, actualBirthDate, applicant, pregnancyType);
+                const result = calculateMaternityLeave(dueDate, applicant, pregnancyType);
                 
                 setTimeout(() => {
                     displayResult(result);
@@ -194,9 +187,8 @@ const server = http.createServer((req, res) => {
             }
         });
         
-        function calculateMaternityLeave(dueDateStr, actualBirthDateStr, applicant, pregnancyType) {
+        function calculateMaternityLeave(dueDateStr, applicant, pregnancyType) {
             const dueDate = new Date(dueDateStr);
-            const actualBirthDate = actualBirthDateStr ? new Date(actualBirthDateStr) : dueDate;
             
             // 출산휴가 기간 설정
             const isMultiple = pregnancyType === 'multiple';
@@ -210,53 +202,98 @@ const server = http.createServer((req, res) => {
                 // 엄마의 경우 출산휴가 계산
                 const prenatalDays = totalMaternityDays - minPostnatalDays;
                 
-                prenatalStart = new Date(actualBirthDate);
-                prenatalStart.setDate(actualBirthDate.getDate() - prenatalDays);
+                prenatalStart = new Date(dueDate);
+                prenatalStart.setDate(dueDate.getDate() - prenatalDays);
                 
-                postnatalEnd = new Date(actualBirthDate);
-                postnatalEnd.setDate(actualBirthDate.getDate() + minPostnatalDays - 1);
-                
-                // 실제 출산일이 예정일과 다른 경우 조정
-                if (actualBirthDate < dueDate) {
-                    // 조산: 산후 휴가 연장
-                    const earlyDays = Math.floor((dueDate - actualBirthDate) / (1000 * 60 * 60 * 24));
-                    postnatalEnd.setDate(postnatalEnd.getDate() + earlyDays);
-                }
+                postnatalEnd = new Date(dueDate);
+                postnatalEnd.setDate(dueDate.getDate() + minPostnatalDays - 1);
             }
             
-            // 육아휴직 계산
+            // 육아휴직 계산 (1년 = 365일)
             let parentalStart, parentalEnd;
             if (applicant === 'mother' && prenatalStart && postnatalEnd) {
                 parentalStart = new Date(postnatalEnd);
                 parentalStart.setDate(postnatalEnd.getDate() + 1);
             } else {
                 // 아빠의 경우 출산일부터 시작 가능
-                parentalStart = new Date(actualBirthDate);
+                parentalStart = new Date(dueDate);
             }
             
             parentalEnd = new Date(parentalStart);
-            parentalEnd.setDate(parentalStart.getDate() + (365 + 183) - 1); // 1년 6개월
+            parentalEnd.setDate(parentalStart.getDate() + 365 - 1); // 1년 = 365일
+            
+            // 주말 및 공휴일 계산
+            const holidays2025 = [
+                '2025-01-01', '2025-01-28', '2025-01-29', '2025-01-30',
+                '2025-03-01', '2025-05-01', '2025-05-05', '2025-06-06',
+                '2025-08-15', '2025-10-03', '2025-10-09', '2025-12-25'
+            ];
+            
+            const calculatePeriodInfo = (startDate, endDate) => {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                let weekdays = 0;
+                let weekends = 0;
+                let holidays = 0;
+                
+                const current = new Date(start);
+                while (current <= end) {
+                    const dayOfWeek = current.getDay();
+                    const dateStr = current.toISOString().split('T')[0];
+                    
+                    if (holidays2025.includes(dateStr)) {
+                        holidays++;
+                    } else if (dayOfWeek === 0 || dayOfWeek === 6) {
+                        weekends++;
+                    } else {
+                        weekdays++;
+                    }
+                    
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                return { weekdays, weekends, holidays };
+            };
+            
+            let maternityInfo = null;
+            let parentalInfo = null;
+            
+            if (applicant === 'mother') {
+                maternityInfo = calculatePeriodInfo(prenatalStart, postnatalEnd);
+            }
+            
+            parentalInfo = calculatePeriodInfo(parentalStart, parentalEnd);
             
             return {
                 출산예정일: dueDate.toISOString().split('T')[0],
-                실제출산일: actualBirthDate.toISOString().split('T')[0],
                 신청자: applicant,
                 태아유형: pregnancyType,
                 출산휴가_총일수: applicant === 'mother' ? totalMaternityDays : 0,
                 출산휴가_유급일수: applicant === 'mother' ? paidMaternityDays : 0,
                 산전휴가: applicant === 'mother' ? {
                     시작일: prenatalStart.toISOString().split('T')[0],
-                    종료일: new Date(actualBirthDate.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                    종료일: new Date(dueDate.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
                 } : null,
                 산후휴가: applicant === 'mother' ? {
-                    시작일: actualBirthDate.toISOString().split('T')[0],
-                    종료일: postnatalEnd.toISOString().split('T')[0]
+                    시작일: dueDate.toISOString().split('T')[0],
+                    종료일: postnatalEnd.toISOString().split('T')[0],
+                    의무기간: minPostnatalDays
                 } : null,
                 산후_법적보장충족: true,
                 육아휴직: {
                     시작일: parentalStart.toISOString().split('T')[0],
                     종료일: parentalEnd.toISOString().split('T')[0],
-                    총일수: Math.floor((parentalEnd - parentalStart) / (1000 * 60 * 60 * 24)) + 1
+                    총일수: 365
+                },
+                출산휴가_상세: applicant === 'mother' ? {
+                    평일: maternityInfo.weekdays,
+                    주말: maternityInfo.weekends,
+                    공휴일: maternityInfo.holidays
+                } : null,
+                육아휴직_상세: {
+                    평일: parentalInfo.weekdays,
+                    주말: parentalInfo.weekends,
+                    공휴일: parentalInfo.holidays
                 },
                 계산일시: new Date().toISOString()
             };
@@ -273,6 +310,12 @@ const server = http.createServer((req, res) => {
                     day: 'numeric', 
                     weekday: 'long' 
                 });
+            };
+            
+            const formatDateWithWeekday = (dateStr) => {
+                const date = new Date(dateStr);
+                const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                return \`\${dateStr.replace(/-/g, '.')} (\${weekdays[date.getDay()]})\`;
             };
             
             const formatDateShort = (dateStr) => {
@@ -305,19 +348,28 @@ const server = http.createServer((req, res) => {
                         <div class="period-summary">
                             <div class="period-item prenatal-bg">
                                 <strong>산전휴가</strong>
-                                <span>\${formatDateShort(data.산전휴가.시작일)} ~ \${formatDateShort(data.산전휴가.종료일)}</span>
+                                <div>
+                                    <span>\${formatDateWithWeekday(data.산전휴가.시작일)} ~ \${formatDateWithWeekday(data.산전휴가.종료일)}</span>
+                                    <br><small>평일 \${data.출산휴가_상세.평일}일, 주말 \${data.출산휴가_상세.주말}일, 공휴일 \${data.출산휴가_상세.공휴일}일</small>
+                                </div>
                             </div>
                             <div class="period-item birth-bg">
-                                <strong>출산일</strong>
-                                <span>\${formatDateShort(data.실제출산일)}</span>
+                                <strong>출산예정일</strong>
+                                <span>\${formatDateWithWeekday(data.출산예정일)}</span>
                             </div>
                             <div class="period-item postnatal-bg">
-                                <strong>산후휴가</strong>
-                                <span>\${formatDateShort(data.산후휴가.시작일)} ~ \${formatDateShort(data.산후휴가.종료일)}</span>
+                                <strong>산후휴가 (의무 \${data.산후휴가.의무기간}일)</strong>
+                                <div>
+                                    <span>\${formatDateWithWeekday(data.산후휴가.시작일)} ~ \${formatDateWithWeekday(data.산후휴가.종료일)}</span>
+                                    <br><small>⚠️ 산후휴가는 법적으로 의무 \${data.산후휴가.의무기간}일 이상 확보해야 합니다</small>
+                                </div>
                             </div>
                             <div class="period-item parental-bg">
-                                <strong>육아휴직</strong>
-                                <span>\${formatDateShort(data.육아휴직.시작일)} ~ \${formatDateShort(data.육아휴직.종료일)}</span>
+                                <strong>육아휴직 (1년)</strong>
+                                <div>
+                                    <span>\${formatDateWithWeekday(data.육아휴직.시작일)} ~ \${formatDateWithWeekday(data.육아휴직.종료일)}</span>
+                                    <br><small>평일 \${data.육아휴직_상세.평일}일, 주말 \${data.육아휴직_상세.주말}일, 공휴일 \${data.육아휴직_상세.공휴일}일</small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -338,12 +390,15 @@ const server = http.createServer((req, res) => {
                         </div>
                         <div class="period-summary">
                             <div class="period-item birth-bg">
-                                <strong>출산일</strong>
-                                <span>\${formatDateShort(data.실제출산일)}</span>
+                                <strong>출산예정일</strong>
+                                <span>\${formatDateWithWeekday(data.출산예정일)}</span>
                             </div>
                             <div class="period-item parental-bg">
-                                <strong>육아휴직</strong>
-                                <span>\${formatDateShort(data.육아휴직.시작일)} ~ \${formatDateShort(data.육아휴직.종료일)}</span>
+                                <strong>육아휴직 (1년)</strong>
+                                <div>
+                                    <span>\${formatDateWithWeekday(data.육아휴직.시작일)} ~ \${formatDateWithWeekday(data.육아휴직.종료일)}</span>
+                                    <br><small>평일 \${data.육아휴직_상세.평일}일, 주말 \${data.육아휴직_상세.주말}일, 공휴일 \${data.육아휴직_상세.공휴일}일</small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -357,10 +412,7 @@ const server = http.createServer((req, res) => {
                         <strong>출산예정일</strong>
                         \${formatDate(data.출산예정일)}
                     </div>
-                    <div class="result-item">
-                        <strong>실제 출산일</strong>
-                        \${formatDate(data.실제출산일)}
-                    </div>
+
                     <div class="result-item">
                         <strong>태아 유형</strong>
                         \${data.태아유형 === 'single' ? '단태아' : '다태아 (쌍둥이 이상)'}
@@ -373,7 +425,7 @@ const server = http.createServer((req, res) => {
                     \` : ''}
                     <div class="result-item">
                         <strong>육아휴직</strong>
-                        총 \${data.육아휴직.총일수}일 (최대 1년 6개월)
+                        총 \${data.육아휴직.총일수}일 (1년)
                     </div>
                 </div>
                 
@@ -390,8 +442,8 @@ const server = http.createServer((req, res) => {
                 <div class="info-box info-tips">
                     <strong>📋 신청 시 참고사항</strong><br>
                     \${data.신청자 === 'mother' ? 
-                        \`• 산후 법적 보장: \${data.태아유형 === 'single' ? '45일' : '60일'} 이상 확보됨 ✅<br>• 육아휴직은 출산전후휴가 종료 다음날부터 시작 가능<br>• 휴직 개시 30일 전 사전 신청 필요\` :
-                        '• 배우자의 출산일부터 육아휴직 시작 가능<br>• 부모 동시 사용 시 각각 최대 1년 6개월 가능<br>• 휴직 개시 30일 전 사전 신청 필요'
+                        \`• 산후휴가는 법적으로 의무 \${data.산후휴가.의무기간}일 이상 확보해야 합니다 ✅<br>• 육아휴직은 출산전후휴가 종료 다음날부터 시작 가능<br>• 육아휴직 기간은 1년(365일)입니다<br>• 휴직 개시 30일 전 사전 신청 필요\` :
+                        '• 배우자의 출산일부터 육아휴직 시작 가능<br>• 육아휴직 기간은 1년(365일)입니다<br>• 부모 동시 사용 시 각각 최대 1년 가능<br>• 휴직 개시 30일 전 사전 신청 필요'
                     }
                 </div>
                 
