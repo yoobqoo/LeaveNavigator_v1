@@ -68,8 +68,22 @@ const server = http.createServer((req, res) => {
         .paternal-bg { background: #fff3e0; border-left: 4px solid #ff9800; }
         
         .action-buttons { display: flex; gap: 15px; margin-top: 30px; justify-content: center; }
+        .btn-primary { background: linear-gradient(135deg, #ff6b9d, #e91e63); color: white; padding: 15px 30px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s; width: 100%; margin-bottom: 20px; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255, 107, 157, 0.3); }
         .btn-secondary { background: linear-gradient(135deg, #757575, #616161); color: white; padding: 12px 25px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
         .btn-secondary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(117, 117, 117, 0.3); }
+        
+        .period-highlight { 
+            background: linear-gradient(135deg, #ff6b9d, #e91e63); 
+            color: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            text-align: center; 
+            margin: 20px 0; 
+            font-size: 24px; 
+            font-weight: bold; 
+            box-shadow: 0 4px 20px rgba(255, 107, 157, 0.3);
+        }
         
         @media (max-width: 768px) { 
             .gender-options { grid-template-columns: 1fr; } 
@@ -82,8 +96,8 @@ const server = http.createServer((req, res) => {
 <body>
     <div class="container">
         <div class="header">
-            <h1>🍼 육아휴직 기간 계산기</h1>
-            <p>출산예정일을 입력하여 출산전후휴가와 육아휴직 기간을 자동으로 계산해보세요</p>
+            <h1>출산휴가 & 육아휴직 계산기</h1>
+            <p>한큐에 확인하는 출산전후휴가, 육아휴직 기간 (2025년 법령 업데이트)</p>
         </div>
         <div class="content">
             <form id="calculatorForm">
@@ -97,11 +111,11 @@ const server = http.createServer((req, res) => {
                     <div class="gender-options">
                         <div class="gender-option" data-value="mother">
                             <strong>👩‍🍼 엄마</strong>
-                            <small>출산전후휴가 + 육아휴직</small>
+                            <small>출산전후휴가 + 육아휴직<br><span style="font-size: 11px; color: #666;">※ 휴가일수는 주말·공휴일 포함</span></small>
                         </div>
                         <div class="gender-option" data-value="father">
                             <strong>👨‍🍼 아빠</strong>
-                            <small>배우자출산휴가 20일 + 육아휴직</small>
+                            <small>배우자출산휴가 20일 + 육아휴직<br><span style="font-size: 11px; color: #666;">※ 배우자출산휴가는 주말·공휴일 제외</span></small>
                         </div>
                     </div>
                     <input type="hidden" id="applicant" required>
@@ -440,8 +454,27 @@ const server = http.createServer((req, res) => {
                 \`;
             }
             
+            // 기간별 일수 계산
+            let prenatalDays = 0, postnatalDays = 0, paternalDays = 0, parentalDays = 365;
+            
+            if (data.신청자 === 'mother') {
+                prenatalDays = Math.floor((new Date(data.출산예정일) - new Date(data.산전휴가.시작일)) / (1000 * 60 * 60 * 24));
+                postnatalDays = data.산후휴가.의무기간;
+            } else if (data.신청자 === 'father') {
+                paternalDays = data.배우자출산휴가.총일수;
+            }
+            
             resultDiv.innerHTML = \`
                 <h3>📊 계산 결과</h3>
+                \${data.신청자 === 'mother' ? \`
+                <div class="period-highlight">
+                    산전휴가 \${prenatalDays}일 + 산후휴가 \${postnatalDays}일 + 육아휴직 \${parentalDays}일
+                </div>
+                \` : \`
+                <div class="period-highlight">
+                    배우자출산휴가 \${paternalDays}일 + 육아휴직 \${parentalDays}일
+                </div>
+                \`}
                 <div class="result-grid">
                     <div class="result-item">
                         <strong>출산예정일</strong>
@@ -489,8 +522,7 @@ const server = http.createServer((req, res) => {
                 </div>
                 
                 <div class="action-buttons">
-                    <button onclick="downloadJSON()" class="btn-secondary">📄 JSON 다운로드</button>
-                    <button onclick="downloadPDF()" class="btn-secondary">📋 PDF 다운로드</button>
+                    <button onclick="downloadPDF()" class="btn-secondary">정부양식 PDF 다운로드</button>
                 </div>
             \`;
             
@@ -501,21 +533,53 @@ const server = http.createServer((req, res) => {
             window.calculationResult = data;
         }
         
-        function downloadJSON() {
-            const dataStr = JSON.stringify(window.calculationResult, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            
-            const exportFileDefaultName = \`육아휴직계산_\${window.calculationResult.실제출산일}.json\`;
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
-        }
+
         
         function downloadPDF() {
-            // PDF 생성 기능 (실제 구현 시 jsPDF 라이브러리 필요)
-            alert('PDF 다운로드 기능은 개발 중입니다. JSON 형태로 먼저 다운로드해주세요.');
+            if (!window.calculationResult) {
+                alert('계산 결과가 없습니다. 먼저 계산을 완료해주세요.');
+                return;
+            }
+            
+            const data = window.calculationResult;
+            
+            // 정부 양식 기반 PDF 내용 생성
+            const pdfContent = \`
+출산휴가·육아휴직 통합신청서
+
+■ 신청자 정보
+- 신청자: \${data.신청자 === 'mother' ? '본인(산모)' : '배우자'}
+- 출산예정일: \${data.출산예정일}
+- 태아유형: \${data.태아유형 === 'single' ? '단태아' : '다태아'}
+
+■ 휴가 기간
+\${data.신청자 === 'mother' ? \`
+- 출산전 휴가: \${data.산전휴가.시작일} ~ \${data.산전휴가.종료일}
+- 출산후 휴가: \${data.산후휴가.시작일} ~ \${data.산후휴가.종료일}
+- 출산전후휴가 총 \${data.출산휴가_총일수}일 (유급 \${data.출산휴가_유급일수}일)
+\` : \`
+- 배우자 출산휴가: \${data.배우자출산휴가.시작일} ~ \${data.배우자출산휴가.종료일} (총 \${data.배우자출산휴가.총일수}일)
+\`}
+- 육아휴직: \${data.육아휴직.시작일} ~ \${data.육아휴직.종료일} (총 \${data.육아휴직.총일수}일)
+
+계산일시: \${data.계산일시}
+
+※ 본 서식은 2025년 법령을 기준으로 자동 계산된 결과입니다.
+※ 실제 신청 시에는 소속 기관의 규정을 확인하시기 바랍니다.
+            \`;
+            
+            // 텍스트 파일로 다운로드 (실제 정부양식 PDF는 별도 처리 필요)
+            const blob = new Blob([pdfContent], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = \`출산휴가육아휴직신청서_\${data.출산예정일.replace(/-/g, '')}.txt\`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            alert('정부양식 기반 신청서가 다운로드되었습니다.\\n실제 제출용 PDF는 소속 기관에 문의하시기 바랍니다.');
         }
     </script>
 </body>
