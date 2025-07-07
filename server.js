@@ -561,84 +561,39 @@ const server = http.createServer((req, res) => {
             }
             
             const data = window.calculationResult;
+            const filename = '출산휴가육아휴직신청서_' + data.출산예정일.replace(/-/g, '') + '.txt';
             
-            // PDF 생성을 위한 새 창 열기
-            const newWindow = window.open('', '_blank', 'width=800,height=600');
-            
-            let htmlContent = '<!DOCTYPE html>';
-            htmlContent += '<html lang="ko">';
-            htmlContent += '<head>';
-            htmlContent += '<meta charset="UTF-8">';
-            htmlContent += '<title>출산전후휴가·육아휴직 통합 신청서</title>';
-            htmlContent += '<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>';
-            htmlContent += '<style>';
-            htmlContent += 'body { font-family: "Malgun Gothic", sans-serif; font-size: 12px; margin: 20px; line-height: 1.4; }';
-            htmlContent += '.header { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 20px; }';
-            htmlContent += '.notice { font-size: 10px; margin-bottom: 15px; }';
-            htmlContent += 'table { width: 100%; border-collapse: collapse; margin: 10px 0; }';
-            htmlContent += 'td { border: 1px solid #000; padding: 6px; vertical-align: middle; }';
-            htmlContent += '.label { background-color: #f5f5f5; font-weight: bold; width: 20%; text-align: center; }';
-            htmlContent += '.content { width: 30%; }';
-            htmlContent += '.section-title { background-color: #e0e0e0; font-weight: bold; text-align: center; padding: 8px; }';
-            htmlContent += '.signature { text-align: right; margin-top: 30px; }';
-            htmlContent += '.instructions { margin-top: 30px; font-size: 10px; }';
-            htmlContent += '.btn { padding: 10px 20px; margin: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }';
-            htmlContent += '</style>';
-            htmlContent += '</head>';
-            htmlContent += '<body>';
-            htmlContent += '<div class="header">출산전후휴가(배우자 출산휴가)·육아휴직 통합 신청서</div>';
-            htmlContent += '<div class="notice">※ 아래의 작성방법을 읽고 작성하여 주시기 바라며, 사업주확인란은 작성하지 않습니다.</div>';
-            htmlContent += '<table>';
-            htmlContent += '<tr><td class="label">성명</td><td class="content">_________________</td><td class="label">생년월일</td><td class="content">_________________</td></tr>';
-            htmlContent += '<tr><td class="label">주소</td><td colspan="3">_________________________________ (연락처: _________________)</td></tr>';
-            htmlContent += '<tr><td class="section-title" colspan="4">신청인</td></tr>';
-            htmlContent += '<tr><td class="label">소속부서</td><td class="content">_________________</td><td class="label">직위(직급)</td><td class="content">_________________</td></tr>';
-            htmlContent += '<tr><td class="label">대상 자녀(영유아) 성명</td><td class="content">_________________</td><td class="label">대상 자녀 생년월일(출산예정일)</td><td class="content"><strong>' + data.출산예정일 + '</strong></td></tr>';
-            htmlContent += '</table>';
-            htmlContent += '<table>';
-            htmlContent += '<tr><td class="section-title" colspan="4">신청내용</td></tr>';
+            let content = '출산전후휴가·육아휴직 통합 신청서\\n\\n';
+            content += '■ 신청자 정보\\n';
+            content += '- 신청자: ' + (data.신청자 === 'mother' ? '본인(산모)' : '배우자') + '\\n';
+            content += '- 출산예정일: ' + data.출산예정일 + '\\n';
+            content += '- 태아유형: ' + (data.태아유형 === 'single' ? '단태아' : '다태아') + '\\n\\n';
+            content += '■ 휴가 기간\\n';
             
             if (data.신청자 === 'mother') {
-                htmlContent += '<tr><td colspan="4" style="text-align: center; padding: 10px;"><strong>출산전후휴가 신청 기간 (' + data.출산휴가_총일수 + '일)</strong><br>개시: <strong>' + data.산전휴가.시작일 + '</strong> ~ 종료: <strong>' + data.산후휴가.종료일 + '</strong></td></tr>';
+                content += '- 출산전 휴가: ' + data.산전휴가.시작일 + ' ~ ' + data.산전휴가.종료일 + '\\n';
+                content += '- 출산후 휴가: ' + data.산후휴가.시작일 + ' ~ ' + data.산후휴가.종료일 + '\\n';
+                content += '- 출산전후휴가 총 ' + data.출산휴가_총일수 + '일 (유급 ' + data.출산휴가_유급일수 + '일)\\n';
             } else {
-                htmlContent += '<tr><td colspan="4" style="text-align: center; padding: 10px;"><strong>배우자 출산휴가 신청 기간 (' + data.배우자출산휴가.총일수 + '일)</strong><br>개시: <strong>' + data.배우자출산휴가.시작일 + '</strong> ~ 종료: <strong>' + data.배우자출산휴가.종료일 + '</strong></td></tr>';
+                content += '- 배우자 출산휴가: ' + data.배우자출산휴가.시작일 + ' ~ ' + data.배우자출산휴가.종료일 + ' (총 ' + data.배우자출산휴가.총일수 + '일)\\n';
             }
             
-            htmlContent += '<tr><td colspan="4" style="text-align: center; padding: 10px;"><strong>육아휴직 기간 (' + data.육아휴직.총일수 + '일)</strong><br>개시: <strong>' + data.육아휴직.시작일 + '</strong> ~ 종료: <strong>' + data.육아휴직.종료일 + '</strong></td></tr>';
-            htmlContent += '</table>';
-            htmlContent += '<p style="margin: 20px 0;">「남녀고용평등과 일·가정 양립 지원에 관한 법률」 제19조, 같은 법 시행령 제11조제2항 및 같은 법 시행규칙 제14조의2에 따라 위와 같이 ' + (data.신청자 === 'mother' ? '출산전후휴가' : '배우자 출산휴가') + '와 함께 육아휴직을 신청합니다.</p>';
-            htmlContent += '<div class="signature">____년 ____월 ____일<br><br>신청인 _________________ (인)</div>';
-            htmlContent += '<div class="instructions"><strong>작성방법</strong><br>1. 소속부서 및 직위(직급)란에는 육아휴직 신청 시의 소속부서 및 직위(직급)를 적습니다.<br>2. 대상 자녀(영유아) 성명란에는 대상 자녀(영유아)의 성명을 적습니다.<br>3. 신청내용란에는 출산전후휴가(또는 배우자 출산휴가) 및 육아휴직의 개시·종료일을 적습니다.<br>※ 휴가 또는 휴직을 나누어 사용하려는 경우에는 나누어 사용하려는 각각의 휴가 또는 휴직의 개시·종료일을 구분하여 적습니다.</div>';
-            htmlContent += '<div style="text-align: center; margin-top: 30px;"><button class="btn" onclick="generatePDF()">PDF 다운로드</button><button class="btn" onclick="window.print()">인쇄</button></div>';
-            htmlContent += '<script>';
-            htmlContent += 'function generatePDF() {';
-            htmlContent += '  const { jsPDF } = window.jspdf;';
-            htmlContent += '  const doc = new jsPDF();';
-            htmlContent += '  doc.setFont("helvetica");';
-            htmlContent += '  doc.setFontSize(16);';
-            htmlContent += '  doc.text("출산전후휴가·육아휴직 통합 신청서", 20, 20);';
-            htmlContent += '  doc.setFontSize(12);';
-            htmlContent += '  doc.text("출산예정일: ' + data.출산예정일 + '", 20, 40);';
-            htmlContent += '  doc.text("신청자: ' + (data.신청자 === 'mother' ? '본인(산모)' : '배우자') + '", 20, 50);';
-            htmlContent += '  doc.text("태아유형: ' + (data.태아유형 === 'single' ? '단태아' : '다태아') + '", 20, 60);';
+            content += '- 육아휴직: ' + data.육아휴직.시작일 + ' ~ ' + data.육아휴직.종료일 + ' (총 ' + data.육아휴직.총일수 + '일)\\n\\n';
+            content += '계산일시: ' + data.계산일시 + '\\n\\n';
+            content += '※ 본 서식은 2025년 법령을 기준으로 자동 계산된 결과입니다.\\n';
+            content += '※ 실제 신청 시에는 소속 기관의 규정을 확인하시기 바랍니다.';
             
-            if (data.신청자 === 'mother') {
-                htmlContent += '  doc.text("출산전후휴가: ' + data.산전휴가.시작일 + ' ~ ' + data.산후휴가.종료일 + ' (' + data.출산휴가_총일수 + '일)", 20, 80);';
-            } else {
-                htmlContent += '  doc.text("배우자 출산휴가: ' + data.배우자출산휴가.시작일 + ' ~ ' + data.배우자출산휴가.종료일 + ' (' + data.배우자출산휴가.총일수 + '일)", 20, 80);';
-            }
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
             
-            htmlContent += '  doc.text("육아휴직: ' + data.육아휴직.시작일 + ' ~ ' + data.육아휴직.종료일 + ' (' + data.육아휴직.총일수 + '일)", 20, 100);';
-            htmlContent += '  const filename = "출산휴가육아휴직통합신청서_' + data.출산예정일.replace(/-/g, '') + '.pdf";';
-            htmlContent += '  doc.save(filename);';
-            htmlContent += '}';
-            htmlContent += 'window.onload = function() { setTimeout(function() { generatePDF(); }, 1000); };';
-            htmlContent += '</script>';
-            htmlContent += '</body>';
-            htmlContent += '</html>';
-            
-            newWindow.document.write(htmlContent);
-            newWindow.document.close();
+            alert('신청서가 다운로드되었습니다.');
         }
     </script>
 </body>
