@@ -16,11 +16,11 @@ const server = http.createServer((req, res) => {
     <title>육아휴직 계산기</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
-        .header { background: linear-gradient(135deg, #4285F4, #1a73e8); color: white; padding: 40px 30px; text-align: center; }
-        .header h1 { font-size: 28px; margin-bottom: 10px; }
-        .header p { opacity: 0.9; font-size: 16px; }
+        body { font-family: 'Arial', sans-serif; background: #f8f8f8; padding: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #ff6b9d, #e91e63); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 32px; margin-bottom: 8px; font-weight: bold; }
+        .header p { opacity: 0.95; font-size: 16px; }
         .content { padding: 40px 30px; }
         .form-group { margin-bottom: 25px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 14px; }
@@ -52,18 +52,20 @@ const server = http.createServer((req, res) => {
         .calendar-legend { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
         .legend-item { display: flex; align-items: center; gap: 8px; }
         .legend-color { width: 20px; height: 20px; border-radius: 4px; }
-        .legend-color.prenatal { background: linear-gradient(135deg, #e3f2fd, #90caf9); }
+        .legend-color.prenatal { background: #ffc107; }
         .legend-color.birth-day { background: #f44336; }
-        .legend-color.postnatal { background: linear-gradient(135deg, #1976d2, #1565c0); }
-        .legend-color.parental { background: linear-gradient(135deg, #e8f5e8, #81c784); }
+        .legend-color.postnatal { background: #2196f3; }
+        .legend-color.parental { background: #4caf50; }
+        .legend-color.paternal { background: #ff9800; }
         
         .period-summary { display: grid; gap: 15px; }
         .period-item { padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
         .period-item strong { color: #1a73e8; }
-        .prenatal-bg { background: linear-gradient(135deg, #e3f2fd, #f8f9ff); border-left: 4px solid #90caf9; }
-        .birth-bg { background: linear-gradient(135deg, #ffebee, #fff5f5); border-left: 4px solid #f44336; }
-        .postnatal-bg { background: linear-gradient(135deg, #e1f5fe, #f3f8ff); border-left: 4px solid #1976d2; }
-        .parental-bg { background: linear-gradient(135deg, #e8f5e8, #f1f8e9); border-left: 4px solid #4caf50; }
+        .prenatal-bg { background: #fff8e1; border-left: 4px solid #ffc107; }
+        .birth-bg { background: #ffebee; border-left: 4px solid #f44336; }
+        .postnatal-bg { background: #e3f2fd; border-left: 4px solid #2196f3; }
+        .parental-bg { background: #e8f5e8; border-left: 4px solid #4caf50; }
+        .paternal-bg { background: #fff3e0; border-left: 4px solid #ff9800; }
         
         .action-buttons { display: flex; gap: 15px; margin-top: 30px; justify-content: center; }
         .btn-secondary { background: linear-gradient(135deg, #757575, #616161); color: white; padding: 12px 25px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
@@ -99,7 +101,7 @@ const server = http.createServer((req, res) => {
                         </div>
                         <div class="gender-option" data-value="father">
                             <strong>👨‍🍼 아빠</strong>
-                            <small>육아휴직만 가능</small>
+                            <small>배우자출산휴가 20일 + 육아휴직</small>
                         </div>
                     </div>
                     <input type="hidden" id="applicant" required>
@@ -209,14 +211,23 @@ const server = http.createServer((req, res) => {
                 postnatalEnd.setDate(dueDate.getDate() + minPostnatalDays - 1);
             }
             
+            // 아빠의 배우자 출산휴가 계산 (20일)
+            let paternalLeaveStart, paternalLeaveEnd;
+            if (applicant === 'father') {
+                paternalLeaveStart = new Date(dueDate);
+                paternalLeaveEnd = new Date(dueDate);
+                paternalLeaveEnd.setDate(dueDate.getDate() + 19); // 20일 (0부터 시작하므로 +19)
+            }
+            
             // 육아휴직 계산 (1년 = 365일)
             let parentalStart, parentalEnd;
             if (applicant === 'mother' && prenatalStart && postnatalEnd) {
                 parentalStart = new Date(postnatalEnd);
                 parentalStart.setDate(postnatalEnd.getDate() + 1);
-            } else {
-                // 아빠의 경우 출산일부터 시작 가능
-                parentalStart = new Date(dueDate);
+            } else if (applicant === 'father') {
+                // 아빠의 경우 배우자 출산휴가 이후부터 육아휴직 시작 가능
+                parentalStart = new Date(paternalLeaveEnd);
+                parentalStart.setDate(paternalLeaveEnd.getDate() + 1);
             }
             
             parentalEnd = new Date(parentalStart);
@@ -256,10 +267,13 @@ const server = http.createServer((req, res) => {
             };
             
             let maternityInfo = null;
+            let paternalInfo = null;
             let parentalInfo = null;
             
             if (applicant === 'mother') {
                 maternityInfo = calculatePeriodInfo(prenatalStart, postnatalEnd);
+            } else if (applicant === 'father') {
+                paternalInfo = calculatePeriodInfo(paternalLeaveStart, paternalLeaveEnd);
             }
             
             parentalInfo = calculatePeriodInfo(parentalStart, parentalEnd);
@@ -279,6 +293,11 @@ const server = http.createServer((req, res) => {
                     종료일: postnatalEnd.toISOString().split('T')[0],
                     의무기간: minPostnatalDays
                 } : null,
+                배우자출산휴가: applicant === 'father' ? {
+                    시작일: paternalLeaveStart.toISOString().split('T')[0],
+                    종료일: paternalLeaveEnd.toISOString().split('T')[0],
+                    총일수: 20
+                } : null,
                 산후_법적보장충족: true,
                 육아휴직: {
                     시작일: parentalStart.toISOString().split('T')[0],
@@ -289,6 +308,11 @@ const server = http.createServer((req, res) => {
                     평일: maternityInfo.weekdays,
                     주말: maternityInfo.weekends,
                     공휴일: maternityInfo.holidays
+                } : null,
+                배우자출산휴가_상세: applicant === 'father' ? {
+                    평일: paternalInfo.weekdays,
+                    주말: paternalInfo.weekends,
+                    공휴일: paternalInfo.holidays
                 } : null,
                 육아휴직_상세: {
                     평일: parentalInfo.weekdays,
@@ -384,6 +408,10 @@ const server = http.createServer((req, res) => {
                                 <span>출산일</span>
                             </div>
                             <div class="legend-item">
+                                <span class="legend-color paternal"></span>
+                                <span>배우자출산휴가</span>
+                            </div>
+                            <div class="legend-item">
                                 <span class="legend-color parental"></span>
                                 <span>육아휴직</span>
                             </div>
@@ -392,6 +420,13 @@ const server = http.createServer((req, res) => {
                             <div class="period-item birth-bg">
                                 <strong>출산예정일</strong>
                                 <span>\${formatDateWithWeekday(data.출산예정일)}</span>
+                            </div>
+                            <div class="period-item paternal-bg">
+                                <strong>배우자출산휴가 (20일)</strong>
+                                <div>
+                                    <span>\${formatDateWithWeekday(data.배우자출산휴가.시작일)} ~ \${formatDateWithWeekday(data.배우자출산휴가.종료일)}</span>
+                                    <br><small>평일 \${data.배우자출산휴가_상세.평일}일, 주말 \${data.배우자출산휴가_상세.주말}일, 공휴일 \${data.배우자출산휴가_상세.공휴일}일</small>
+                                </div>
                             </div>
                             <div class="period-item parental-bg">
                                 <strong>육아휴직 (1년)</strong>
@@ -423,6 +458,12 @@ const server = http.createServer((req, res) => {
                         총 \${data.출산휴가_총일수}일 (유급 \${data.출산휴가_유급일수}일)
                     </div>
                     \` : ''}
+                    \${data.신청자 === 'father' ? \`
+                    <div class="result-item">
+                        <strong>배우자출산휴가</strong>
+                        총 \${data.배우자출산휴가.총일수}일 (근로제공의무일 기준)
+                    </div>
+                    \` : ''}
                     <div class="result-item">
                         <strong>육아휴직</strong>
                         총 \${data.육아휴직.총일수}일 (1년)
@@ -443,7 +484,7 @@ const server = http.createServer((req, res) => {
                     <strong>📋 신청 시 참고사항</strong><br>
                     \${data.신청자 === 'mother' ? 
                         \`• 산후휴가는 법적으로 의무 \${data.산후휴가.의무기간}일 이상 확보해야 합니다 ✅<br>• 육아휴직은 출산전후휴가 종료 다음날부터 시작 가능<br>• 육아휴직 기간은 1년(365일)입니다<br>• 휴직 개시 30일 전 사전 신청 필요\` :
-                        '• 배우자의 출산일부터 육아휴직 시작 가능<br>• 육아휴직 기간은 1년(365일)입니다<br>• 부모 동시 사용 시 각각 최대 1년 가능<br>• 휴직 개시 30일 전 사전 신청 필요'
+                        \`• 배우자출산휴가는 출산일 기준 최대 20일 사용 가능<br>• 근로제공의무가 있는 날만 휴가일수로 계산 (주휴일, 공휴일 제외)<br>• 20일간 연속 사용 원칙, 최대 3회 분할 가능 (4개 구간)<br>• 육아휴직은 배우자출산휴가 이후 시작 가능 (1년)<br>• 휴직 개시 30일 전 사전 신청 필요\`
                     }
                 </div>
                 
