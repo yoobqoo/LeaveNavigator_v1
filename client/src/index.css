@@ -1,0 +1,178 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary: #4285F4;
+  --maternity: #34A853;
+  --parental: #1A73E8;
+  --recommended: #9C27B0;
+  --background: #FFFFFF;
+  --text: #202124;
+  --border: #E0E0E0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background-color: var(--background);
+  line-height: 1.6;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.calendar-day {
+  background-color: white;
+  padding: 12px 8px;
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.calendar-day:hover {
+  background-color: #F8F9FA;
+}
+
+.calendar-day.selected {
+  background-color: var(--primary);
+  color: white;
+}
+
+.calendar-day.maternity {
+  background-color: var(--maternity);
+  color: white;
+}
+
+.calendar-day.parental {
+  background-color: var(--parental);
+  color: white;
+}
+
+.calendar-day.recommended {
+  background-color: var(--recommended);
+  color: white;
+}
+
+.calendar-day.disabled {
+  color: #9E9E9E;
+  cursor: not-allowed;
+}
+
+.calendar-day.other-month {
+  color: #BDBDBD;
+}
+
+.leave-period-indicator {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.maternity-indicator {
+  background-color: var(--maternity);
+}
+
+.parental-indicator {
+  background-color: var(--parental);
+}
+
+.recommended-indicator {
+  background-color: var(--recommended);
+}
+
+/* 버튼 스타일 */
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: #1A73E8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--primary);
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 2px solid var(--primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* 카드 스타일 */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
+}
+
+.card-header {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* 애니메이션 */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .calendar-day {
+    padding: 8px 4px;
+    min-height: 40px;
+    font-size: 14px;
+  }
+  
+  .card {
+    padding: 16px;
+    margin: 8px;
+  }
+}
