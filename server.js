@@ -103,7 +103,7 @@ const server = http.createServer((req, res) => {
             <form id="calculatorForm">
                 <div class="form-group">
                     <label for="dueDate">출산예정일</label>
-                    <input type="date" id="dueDate" required min="${new Date().toISOString().split('T')[0]}">
+                    <input type="date" id="dueDate" required min="2025-01-01">
                 </div>
                 
                 <div class="form-group">
@@ -562,123 +562,35 @@ const server = http.createServer((req, res) => {
             
             const data = window.calculationResult;
             
-            // 정부 양식 HTML 생성 (고용노동부 제공 양식 기반)
-            const htmlContent = \`
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>출산전후휴가·육아휴직 통합 신청서</title>
-  <style>
-    body { font-family: 'Malgun Gothic', sans-serif; font-size: 12px; margin: 20px; line-height: 1.4; }
-    .header { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 20px; }
-    .notice { font-size: 10px; margin-bottom: 15px; }
-    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-    td { border: 1px solid #000; padding: 6px; vertical-align: middle; }
-    .label { background-color: #f5f5f5; font-weight: bold; width: 15%; text-align: center; }
-    .content { width: 35%; }
-    .section-title { background-color: #e0e0e0; font-weight: bold; text-align: center; padding: 8px; }
-    .signature { text-align: right; margin-top: 30px; }
-    .instructions { margin-top: 30px; font-size: 10px; }
-  </style>
-</head>
-<body>
-  <div class="header">출산전후휴가(배우자 출산휴가)·육아휴직 통합 신청서</div>
-  <div class="notice">※ 아래의 작성방법을 읽고 작성하여 주시기 바라며, 사업주확인란은 작성하지 않습니다.</div>
-  
-  <table>
-    <tr>
-      <td class="label">성명</td>
-      <td class="content">_________________</td>
-      <td class="label">생년월일</td>
-      <td class="content">_________________</td>
-    </tr>
-    <tr>
-      <td class="label">주소</td>
-      <td colspan="3">_________________________________ (연락처: _________________)</td>
-    </tr>
-    <tr>
-      <td class="section-title" colspan="4">신청인</td>
-    </tr>
-    <tr>
-      <td class="label">소속부서</td>
-      <td class="content">_________________</td>
-      <td class="label">직위(직급)</td>
-      <td class="content">_________________</td>
-    </tr>
-    <tr>
-      <td class="label">대상 자녀(영유아) 성명</td>
-      <td class="content">_________________</td>
-      <td class="label">대상 자녀 생년월일(출산예정일)</td>
-      <td class="content"><strong>\${data.출산예정일}</strong></td>
-    </tr>
-  </table>
-  
-  <table>
-    <tr>
-      <td class="section-title" colspan="4">신청내용</td>
-    </tr>
-    \${data.신청자 === 'mother' ? \`
-    <tr>
-      <td colspan="4" style="text-align: center; padding: 10px;">
-        <strong>출산전후휴가 신청 기간 (\${data.출산휴가_총일수}일)</strong><br>
-        개시: <strong>\${data.산전휴가.시작일}</strong> ~ 종료: <strong>\${data.산후휴가.종료일}</strong>
-      </td>
-    </tr>
-    \` : \`
-    <tr>
-      <td colspan="4" style="text-align: center; padding: 10px;">
-        <strong>배우자 출산휴가 신청 기간 (\${data.배우자출산휴가.총일수}일)</strong><br>
-        개시: <strong>\${data.배우자출산휴가.시작일}</strong> ~ 종료: <strong>\${data.배우자출산휴가.종료일}</strong>
-      </td>
-    </tr>
-    \`}
-    <tr>
-      <td colspan="4" style="text-align: center; padding: 10px;">
-        <strong>육아휴직 기간 (\${data.육아휴직.총일수}일)</strong><br>
-        개시: <strong>\${data.육아휴직.시작일}</strong> ~ 종료: <strong>\${data.육아휴직.종료일}</strong>
-      </td>
-    </tr>
-  </table>
-  
-  <p style="margin: 20px 0;">
-    「남녀고용평등과 일·가정 양립 지원에 관한 법률」 제19조, 같은 법 시행령 제11조제2항 및 같은 법 시행규칙 제14조의2에 따라 위와 같이 \${data.신청자 === 'mother' ? '출산전후휴가' : '배우자 출산휴가'}와 함께 육아휴직을 신청합니다.
-  </p>
-  
-  <div class="signature">
-    ____년 ____월 ____일<br><br>
-    신청인 _________________ (인)
-  </div>
-  
-  <div class="instructions">
-    <strong>작성방법</strong><br>
-    1. 소속부서 및 직위(직급)란에는 육아휴직 신청 시의 소속부서 및 직위(직급)를 적습니다.<br>
-    2. 대상 자녀(영유아) 성명란에는 대상 자녀(영유아)의 성명을 적습니다.<br>
-    3. 신청내용란에는 출산전후휴가(또는 배우자 출산휴가) 및 육아휴직의 개시·종료일을 적습니다.<br>
-    ※ 휴가 또는 휴직을 나누어 사용하려는 경우에는 나누어 사용하려는 각각의 휴가 또는 휴직의 개시·종료일을 구분하여 적습니다.
-  </div>
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
-  <script>
-    window.onload = function() {
-      const opt = {
-        margin: 1,
-        filename: '출산휴가육아휴직통합신청서_\${data.출산예정일.replace(/-/g, '')}.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
-      html2pdf().set(opt).from(document.body).save();
-    };
-  </script>
-</body>
-</html>
-            \`;
+            // 간단한 텍스트 파일 다운로드
+            const content = '출산전후휴가·육아휴직 통합 신청서\\n\\n' +
+                '■ 신청자 정보\\n' +
+                '- 신청자: ' + (data.신청자 === 'mother' ? '본인(산모)' : '배우자') + '\\n' +
+                '- 출산예정일: ' + data.출산예정일 + '\\n' +
+                '- 태아유형: ' + (data.태아유형 === 'single' ? '단태아' : '다태아') + '\\n\\n' +
+                '■ 휴가 기간\\n' +
+                (data.신청자 === 'mother' ? 
+                    '- 출산전 휴가: ' + data.산전휴가.시작일 + ' ~ ' + data.산전휴가.종료일 + '\\n' +
+                    '- 출산후 휴가: ' + data.산후휴가.시작일 + ' ~ ' + data.산후휴가.종료일 + '\\n' +
+                    '- 출산전후휴가 총 ' + data.출산휴가_총일수 + '일 (유급 ' + data.출산휴가_유급일수 + '일)\\n' :
+                    '- 배우자 출산휴가: ' + data.배우자출산휴가.시작일 + ' ~ ' + data.배우자출산휴가.종료일 + ' (총 ' + data.배우자출산휴가.총일수 + '일)\\n'
+                ) +
+                '- 육아휴직: ' + data.육아휴직.시작일 + ' ~ ' + data.육아휴직.종료일 + ' (총 ' + data.육아휴직.총일수 + '일)\\n\\n' +
+                '계산일시: ' + data.계산일시 + '\\n\\n' +
+                '※ 본 서식은 2025년 법령을 기준으로 자동 계산된 결과입니다.\\n' +
+                '※ 실제 신청 시에는 소속 기관의 규정을 확인하시기 바랍니다.';
             
-            // 새 창에서 PDF 생성
-            const newWindow = window.open('', '_blank');
-            newWindow.document.write(htmlContent);
-            newWindow.document.close();
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = '출산휴가육아휴직신청서_' + data.출산예정일.replace(/-/g, '') + '.txt';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            alert('정부양식 기반 신청서가 다운로드되었습니다.');
         }
     </script>
 </body>
