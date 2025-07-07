@@ -564,109 +564,42 @@ const server = http.createServer((req, res) => {
             
             // 새 창에서 정부 양식 PDF 생성
             const newWindow = window.open('', '_blank');
-            const htmlContent = \`<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>출산휴가·육아휴직 통합 신청서</title>
-  <style>
-    body {
-      font-family: 'Malgun Gothic', sans-serif;
-      font-size: 14px;
-      margin: 40px;
-      line-height: 1.6;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    td {
-      border: 1px solid #000;
-      padding: 8px;
-      vertical-align: top;
-    }
-    .signature {
-      text-align: right;
-      margin-top: 50px;
-    }
-    .no-print {
-      display: none;
-    }
-    @media print {
-      .no-print {
-        display: none !important;
-      }
-    }
-  </style>
-</head>
-<body>
-  <h2 style="text-align: center;">출산전후휴가·육아휴직 통합 신청서</h2>
-
-  <table>
-    <tr>
-      <td>성명</td><td>__________________</td>
-      <td>생년월일</td><td>__________________</td>
-    </tr>
-    <tr>
-      <td>주소</td><td colspan="3">__________________________________________________</td>
-    </tr>
-    <tr>
-      <td>연락처</td><td>__________________</td>
-      <td>소속부서</td><td>__________________</td>
-    </tr>
-    <tr>
-      <td>직위(직급)</td><td>__________________</td>
-      <td>대상 자녀 성명</td><td>__________________</td>
-    </tr>
-    <tr>
-      <td>출산예정일</td><td><strong>\${data.출산예정일}</strong></td>
-      <td>출산일</td><td>__________</td>
-    </tr>
-    <tr>
-      <td>출산전후휴가</td>
-      <td colspan="3">\${data.신청자 === 'mother' ? data.산전휴가.시작일 + ' ~ ' + data.산후휴가.종료일 : data.배우자출산휴가.시작일 + ' ~ ' + data.배우자출산휴가.종료일}</td>
-    </tr>
-    <tr>
-      <td>육아휴직</td>
-      <td colspan="3">\${data.육아휴직.시작일} ~ \${data.육아휴직.종료일}</td>
-    </tr>
-  </table>
-
-  <div class="signature">
-    신청일자: ______년 ______월 ______일<br><br>
-    신청인: __________________ (서명 또는 인)
-  </div>
-
-  <div style="text-align: center; margin-top: 30px;" class="no-print">
-    <button onclick="generatePDF()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer;">📄 PDF 다운로드</button>
-    <button onclick="window.print()" style="padding: 10px 20px; background: #2196F3; color: white; border: none; cursor: pointer; margin-left: 10px;">🖨️ 인쇄</button>
-  </div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
-  <script>
-    function generatePDF() {
-      const opt = {
-        margin: 1,
-        filename: '출산휴가육아휴직통합신청서_\${data.출산예정일.replace(/-/g, '')}.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
-      
-      const element = document.body;
-      html2pdf().set(opt).from(element).save();
-    }
-    
-    // 페이지 로드 후 자동 PDF 생성
-    window.onload = function() {
-      setTimeout(generatePDF, 1000);
-    };
-  </script>
-</body>
-</html>\`;
+            let html = '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">';
+            html += '<title>출산휴가·육아휴직 통합 신청서</title>';
+            html += '<style>body{font-family:"Malgun Gothic",sans-serif;font-size:14px;margin:40px;line-height:1.6}';
+            html += 'table{width:100%;border-collapse:collapse;margin-top:10px}';
+            html += 'td{border:1px solid #000;padding:8px;vertical-align:top}';
+            html += '.signature{text-align:right;margin-top:50px}';
+            html += '.no-print{display:block}@media print{.no-print{display:none!important}}</style></head>';
+            html += '<body><h2 style="text-align:center">출산전후휴가·육아휴직 통합 신청서</h2>';
+            html += '<table><tr><td>성명</td><td>__________________</td><td>생년월일</td><td>__________________</td></tr>';
+            html += '<tr><td>주소</td><td colspan="3">__________________________________________________</td></tr>';
+            html += '<tr><td>연락처</td><td>__________________</td><td>소속부서</td><td>__________________</td></tr>';
+            html += '<tr><td>직위(직급)</td><td>__________________</td><td>대상 자녀 성명</td><td>__________________</td></tr>';
+            html += '<tr><td>출산예정일</td><td><strong>' + data.출산예정일 + '</strong></td><td>출산일</td><td>__________</td></tr>';
+            html += '<tr><td>출산전후휴가</td><td colspan="3">';
+            if (data.신청자 === 'mother') {
+                html += data.산전휴가.시작일 + ' ~ ' + data.산후휴가.종료일;
+            } else {
+                html += data.배우자출산휴가.시작일 + ' ~ ' + data.배우자출산휴가.종료일;
+            }
+            html += '</td></tr>';
+            html += '<tr><td>육아휴직</td><td colspan="3">' + data.육아휴직.시작일 + ' ~ ' + data.육아휴직.종료일 + '</td></tr>';
+            html += '</table>';
+            html += '<div class="signature">신청일자: ______년 ______월 ______일<br><br>신청인: __________________ (서명 또는 인)</div>';
+            html += '<div style="text-align:center;margin-top:30px" class="no-print">';
+            html += '<button onclick="generatePDF()" style="padding:10px 20px;background:#4CAF50;color:white;border:none;cursor:pointer">📄 PDF 다운로드</button> ';
+            html += '<button onclick="window.print()" style="padding:10px 20px;background:#2196F3;color:white;border:none;cursor:pointer;margin-left:10px">🖨️ 인쇄</button>';
+            html += '</div>';
+            html += '<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>';
+            html += '<script>function generatePDF(){';
+            html += 'const opt={margin:1,filename:"출산휴가육아휴직통합신청서_' + data.출산예정일.replace(/-/g, '') + '.pdf",';
+            html += 'image:{type:"jpeg",quality:0.98},html2canvas:{scale:2},jsPDF:{unit:"in",format:"a4",orientation:"portrait"}};';
+            html += 'html2pdf().set(opt).from(document.body).save();}';
+            html += 'window.onload=function(){setTimeout(generatePDF,1000);};';
+            html += '</script></body></html>';
             
-            newWindow.document.write(htmlContent);
+            newWindow.document.write(html);
             newWindow.document.close();
         }
     </script>
