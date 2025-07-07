@@ -163,6 +163,18 @@ app.get('/', (req, res) => {
 });
 
 // API 라우트들
+app.get('/api', (req, res) => {
+  res.json({
+    message: '육아휴직 계산기 API',
+    version: '1.0.0',
+    endpoints: {
+      settings: '/api/settings',
+      calculate: '/api/calculate-leave',
+      holidays: '/api/holidays'
+    }
+  });
+});
+
 app.get('/api/settings', (req, res) => {
   res.json({
     id: 'default',
