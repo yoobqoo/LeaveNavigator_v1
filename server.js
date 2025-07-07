@@ -506,23 +506,42 @@ const server = http.createServer((req, res) => {
                 \${calendarHTML}
                 
                 <div class="info-box info-salary">
-                    <strong>💰 급여 안내</strong><br>
+                    <strong>💰 급여 안내</strong><br><br>
                     \${data.신청자 === 'mother' ? 
-                        \`• 출산전후휴가: 통상임금의 100% (회사 지급, 유급 \${data.출산휴가_유급일수}일)<br>• 무급 기간: \${data.출산휴가_총일수 - data.출산휴가_유급일수}일<br>• 육아휴직: 통상임금의 80% (상한 월 150만원, 고용보험 지급)\` : 
-                        '• 육아휴직: 통상임금의 80% (상한 월 150만원, 고용보험 지급)'
+                        \`• <strong>출산전후휴가: 통상임금의 100%</strong><br>
+                        &nbsp;&nbsp;- 유급 60일: 고용주가 지급<br>
+                        &nbsp;&nbsp;- 잔여 30일:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;· 우선지원대상기업(중소기업): 고용보험에서 지원 (상한 월 210만 원)<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;· 그 외 기업: 고용보험 또는 사업주 일부 분담<br><br>
+                        • <strong>육아휴직:</strong><br>
+                        &nbsp;&nbsp;- 통상임금의 80% (상한 월 150만 원)<br>
+                        &nbsp;&nbsp;- 1~3개월까지 해당, 이후 구간은 50~80% 변동<br>
+                        &nbsp;&nbsp;- 지급 주체: 고용보험 (근로자 직접 신청)<br>
+                        &nbsp;&nbsp;※ 2025년 하반기~2026년부터는 상한액 인상 예정\` : 
+                        \`• <strong>육아휴직:</strong><br>
+                        &nbsp;&nbsp;- 통상임금의 80% (상한 월 150만 원)<br>
+                        &nbsp;&nbsp;- 1~3개월까지 해당, 이후 구간은 50~80% 변동<br>
+                        &nbsp;&nbsp;- 지급 주체: 고용보험 (근로자 직접 신청)<br>
+                        &nbsp;&nbsp;※ 2025년 하반기~2026년부터는 상한액 인상 예정\`
                     }
                 </div>
                 
                 <div class="info-box info-tips">
-                    <strong>📋 신청 시 참고사항</strong><br>
-                    \${data.신청자 === 'mother' ? 
-                        \`• 산후휴가는 법적으로 의무 \${data.산후휴가.의무기간}일 이상 확보해야 합니다 ✅<br>• 육아휴직은 출산전후휴가 종료 다음날부터 시작 가능<br>• 육아휴직 기간은 1년(365일)입니다<br>• 휴직 개시 30일 전 사전 신청 필요\` :
-                        \`• 배우자출산휴가는 출산일 기준 최대 20일 사용 가능<br>• 근로제공의무가 있는 날만 휴가일수로 계산 (주휴일, 공휴일 제외)<br>• 20일간 연속 사용 원칙, 최대 3회 분할 가능 (4개 구간)<br>• 육아휴직은 배우자출산휴가 이후 시작 가능 (1년)<br>• 휴직 개시 30일 전 사전 신청 필요\`
-                    }
+                    <strong>📋 신청 시 참고사항</strong><br><br>
+                    • 산후휴가는 법적으로 의무 \${data.신청자 === 'mother' ? data.산후휴가.의무기간 : '45'}일 이상 확보해야 합니다 (단태아 기준, 다태아는 60일) ✅<br>
+                    • 육아휴직은 출산전후휴가 종료 다음날부터 시작 가능<br>
+                    • 육아휴직 기간은 1년(365일)입니다 (부모 각각 1년 가능)<br>
+                    • 휴직 개시 30일 전 사전 신청 필요 (서면 또는 전자신청 가능)<br><br>
+                    
+                    <strong>📎 참고 출처</strong><br>
+                    • 고용노동부 공식 FAQ (moel.go.kr)<br>
+                    • 육아휴직·출산휴가 급여 안내서 (고용보험 웹사이트)<br>
+                    • 고용노동부 일생활균형 사이트 (worklife.kr)<br>
+                    • 법령정보: 근로기준법 제74조, 고용보험법 시행령 제95조
                 </div>
                 
                 <div class="action-buttons">
-                    <button onclick="downloadPDF()" class="btn-secondary">정부양식 PDF 다운로드</button>
+                    <button onclick="downloadPDF()" class="btn-secondary">회사 제출용 출산휴가 & 육아휴직 통합신청서 PDF 다운받기 (고용노동부 제공파일)</button>
                 </div>
             \`;
             
@@ -543,43 +562,123 @@ const server = http.createServer((req, res) => {
             
             const data = window.calculationResult;
             
-            // 정부 양식 기반 PDF 내용 생성
-            const pdfContent = \`
-출산휴가·육아휴직 통합신청서
-
-■ 신청자 정보
-- 신청자: \${data.신청자 === 'mother' ? '본인(산모)' : '배우자'}
-- 출산예정일: \${data.출산예정일}
-- 태아유형: \${data.태아유형 === 'single' ? '단태아' : '다태아'}
-
-■ 휴가 기간
-\${data.신청자 === 'mother' ? \`
-- 출산전 휴가: \${data.산전휴가.시작일} ~ \${data.산전휴가.종료일}
-- 출산후 휴가: \${data.산후휴가.시작일} ~ \${data.산후휴가.종료일}
-- 출산전후휴가 총 \${data.출산휴가_총일수}일 (유급 \${data.출산휴가_유급일수}일)
-\` : \`
-- 배우자 출산휴가: \${data.배우자출산휴가.시작일} ~ \${data.배우자출산휴가.종료일} (총 \${data.배우자출산휴가.총일수}일)
-\`}
-- 육아휴직: \${data.육아휴직.시작일} ~ \${data.육아휴직.종료일} (총 \${data.육아휴직.총일수}일)
-
-계산일시: \${data.계산일시}
-
-※ 본 서식은 2025년 법령을 기준으로 자동 계산된 결과입니다.
-※ 실제 신청 시에는 소속 기관의 규정을 확인하시기 바랍니다.
+            // 정부 양식 HTML 생성 (고용노동부 제공 양식 기반)
+            const htmlContent = \`
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>출산전후휴가·육아휴직 통합 신청서</title>
+  <style>
+    body { font-family: 'Malgun Gothic', sans-serif; font-size: 12px; margin: 20px; line-height: 1.4; }
+    .header { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 20px; }
+    .notice { font-size: 10px; margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    td { border: 1px solid #000; padding: 6px; vertical-align: middle; }
+    .label { background-color: #f5f5f5; font-weight: bold; width: 15%; text-align: center; }
+    .content { width: 35%; }
+    .section-title { background-color: #e0e0e0; font-weight: bold; text-align: center; padding: 8px; }
+    .signature { text-align: right; margin-top: 30px; }
+    .instructions { margin-top: 30px; font-size: 10px; }
+  </style>
+</head>
+<body>
+  <div class="header">출산전후휴가(배우자 출산휴가)·육아휴직 통합 신청서</div>
+  <div class="notice">※ 아래의 작성방법을 읽고 작성하여 주시기 바라며, 사업주확인란은 작성하지 않습니다.</div>
+  
+  <table>
+    <tr>
+      <td class="label">성명</td>
+      <td class="content">_________________</td>
+      <td class="label">생년월일</td>
+      <td class="content">_________________</td>
+    </tr>
+    <tr>
+      <td class="label">주소</td>
+      <td colspan="3">_________________________________ (연락처: _________________)</td>
+    </tr>
+    <tr>
+      <td class="section-title" colspan="4">신청인</td>
+    </tr>
+    <tr>
+      <td class="label">소속부서</td>
+      <td class="content">_________________</td>
+      <td class="label">직위(직급)</td>
+      <td class="content">_________________</td>
+    </tr>
+    <tr>
+      <td class="label">대상 자녀(영유아) 성명</td>
+      <td class="content">_________________</td>
+      <td class="label">대상 자녀 생년월일(출산예정일)</td>
+      <td class="content"><strong>\${data.출산예정일}</strong></td>
+    </tr>
+  </table>
+  
+  <table>
+    <tr>
+      <td class="section-title" colspan="4">신청내용</td>
+    </tr>
+    \${data.신청자 === 'mother' ? \`
+    <tr>
+      <td colspan="4" style="text-align: center; padding: 10px;">
+        <strong>출산전후휴가 신청 기간 (\${data.출산휴가_총일수}일)</strong><br>
+        개시: <strong>\${data.산전휴가.시작일}</strong> ~ 종료: <strong>\${data.산후휴가.종료일}</strong>
+      </td>
+    </tr>
+    \` : \`
+    <tr>
+      <td colspan="4" style="text-align: center; padding: 10px;">
+        <strong>배우자 출산휴가 신청 기간 (\${data.배우자출산휴가.총일수}일)</strong><br>
+        개시: <strong>\${data.배우자출산휴가.시작일}</strong> ~ 종료: <strong>\${data.배우자출산휴가.종료일}</strong>
+      </td>
+    </tr>
+    \`}
+    <tr>
+      <td colspan="4" style="text-align: center; padding: 10px;">
+        <strong>육아휴직 기간 (\${data.육아휴직.총일수}일)</strong><br>
+        개시: <strong>\${data.육아휴직.시작일}</strong> ~ 종료: <strong>\${data.육아휴직.종료일}</strong>
+      </td>
+    </tr>
+  </table>
+  
+  <p style="margin: 20px 0;">
+    「남녀고용평등과 일·가정 양립 지원에 관한 법률」 제19조, 같은 법 시행령 제11조제2항 및 같은 법 시행규칙 제14조의2에 따라 위와 같이 \${data.신청자 === 'mother' ? '출산전후휴가' : '배우자 출산휴가'}와 함께 육아휴직을 신청합니다.
+  </p>
+  
+  <div class="signature">
+    ____년 ____월 ____일<br><br>
+    신청인 _________________ (인)
+  </div>
+  
+  <div class="instructions">
+    <strong>작성방법</strong><br>
+    1. 소속부서 및 직위(직급)란에는 육아휴직 신청 시의 소속부서 및 직위(직급)를 적습니다.<br>
+    2. 대상 자녀(영유아) 성명란에는 대상 자녀(영유아)의 성명을 적습니다.<br>
+    3. 신청내용란에는 출산전후휴가(또는 배우자 출산휴가) 및 육아휴직의 개시·종료일을 적습니다.<br>
+    ※ 휴가 또는 휴직을 나누어 사용하려는 경우에는 나누어 사용하려는 각각의 휴가 또는 휴직의 개시·종료일을 구분하여 적습니다.
+  </div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+  <script>
+    window.onload = function() {
+      const opt = {
+        margin: 1,
+        filename: '출산휴가육아휴직통합신청서_\${data.출산예정일.replace(/-/g, '')}.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(document.body).save();
+    };
+  </script>
+</body>
+</html>
             \`;
             
-            // 텍스트 파일로 다운로드 (실제 정부양식 PDF는 별도 처리 필요)
-            const blob = new Blob([pdfContent], { type: 'text/plain;charset=utf-8' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = \`출산휴가육아휴직신청서_\${data.출산예정일.replace(/-/g, '')}.txt\`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-            alert('정부양식 기반 신청서가 다운로드되었습니다.\\n실제 제출용 PDF는 소속 기관에 문의하시기 바랍니다.');
+            // 새 창에서 PDF 생성
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(htmlContent);
+            newWindow.document.close();
         }
     </script>
 </body>
