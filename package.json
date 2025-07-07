@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx tsx server/index.ts",
-    "start": "npx tsx server/index.ts"
+    "start": "node main.js"
   },
   "keywords": [],
   "author": "",
