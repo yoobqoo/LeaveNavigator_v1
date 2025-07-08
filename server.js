@@ -25,15 +25,15 @@ const server = http.createServer((req, res) => {
         .form-group { margin-bottom: 25px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 14px; }
         input, select { width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; transition: border-color 0.3s; }
-        input:focus, select:focus { outline: none; border-color: #4285F4; box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1); }
+        input:focus, select:focus { outline: none; border-color: #ff6b9d; box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1); }
         .gender-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
         .gender-option { padding: 20px; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.3s; }
-        .gender-option:hover { border-color: #4285F4; background: #f8f9ff; }
-        .gender-option.selected { border-color: #4285F4; background: #4285F4; color: white; }
+        .gender-option:hover { border-color: #ff6b9d; background: #fdf4f7; }
+        .gender-option.selected { border-color: #ff6b9d; background: #ff6b9d; color: white; }
         .gender-option strong { display: block; font-size: 16px; margin-bottom: 5px; }
         .gender-option small { font-size: 12px; opacity: 0.8; }
-        .btn-primary { background: linear-gradient(135deg, #4285F4, #1a73e8); color: white; padding: 18px 30px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 30px; transition: transform 0.2s; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(66, 133, 244, 0.3); }
+        .btn-primary { background: linear-gradient(135deg, #ff6b9d, #e91e63); color: white; padding: 18px 30px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 30px; transition: transform 0.2s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 107, 157, 0.3); }
         .btn-primary:disabled { background: #ccc; cursor: not-allowed; transform: none; }
         .result { margin-top: 40px; padding: 30px; background: #f8f9fa; border-radius: 12px; border-left: 5px solid #34a853; display: none; }
         .result h3 { color: #1a73e8; margin-bottom: 20px; font-size: 20px; }
@@ -50,9 +50,6 @@ const server = http.createServer((req, res) => {
         .period-summary { background: linear-gradient(135deg, #ffeef8, #ffe8f1); padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #ff6b9d; text-align: center; }
         .period-summary h4 { color: #e91e63; margin-bottom: 15px; font-size: 18px; }
         .period-text { font-size: 24px; font-weight: bold; color: #ad1457; line-height: 1.5; }
-        .btn-secondary { background: #17a2b8; color: white; padding: 12px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; margin: 10px 5px; }
-        .btn-secondary:hover { background: #138496; }
-        .action-buttons { text-align: center; margin-top: 25px; }
     </style>
 </head>
 <body>
@@ -307,53 +304,7 @@ const server = http.createServer((req, res) => {
                     • 고용노동부 일생활균형 사이트 (worklife.kr)<br>
                     • 법령정보: 근로기준법 제74조, 고용보험법 시행령 제95조
                 </div>
-                
-                <div class="action-buttons">
-                    <button onclick="downloadPDF()" class="btn-secondary">회사 제출용 출산휴가 & 육아휴직 통합신청서 PDF 다운받기 (고용노동부 제공파일)</button>
-                </div>
             \`;
-        }
-        
-        function downloadPDF() {
-            if (!window.calculationResult) {
-                alert('계산 결과가 없습니다. 먼저 계산을 완료해주세요.');
-                return;
-            }
-            
-            const data = window.calculationResult;
-            const filename = '출산휴가육아휴직신청서_' + data.출산예정일.replace(/-/g, '') + '.txt';
-            
-            let content = '출산전후휴가·육아휴직 통합 신청서\\n\\n';
-            content += '■ 신청자 정보\\n';
-            content += '- 신청자: ' + (data.신청자 === 'mother' ? '본인(산모)' : '배우자') + '\\n';
-            content += '- 출산예정일: ' + data.출산예정일 + '\\n';
-            content += '- 태아유형: ' + (data.태아유형 === 'single' ? '단태아' : '다태아') + '\\n\\n';
-            content += '■ 휴가 기간\\n';
-            
-            if (data.신청자 === 'mother') {
-                content += '- 출산전 휴가: ' + data.산전휴가.시작일 + ' ~ ' + data.산전휴가.종료일 + '\\n';
-                content += '- 출산후 휴가: ' + data.산후휴가.시작일 + ' ~ ' + data.산후휴가.종료일 + '\\n';
-                content += '- 출산전후휴가 총 ' + data.출산휴가_총일수 + '일 (유급 ' + data.출산휴가_유급일수 + '일)\\n';
-            } else {
-                content += '- 배우자 출산휴가: ' + data.배우자출산휴가.시작일 + ' ~ ' + data.배우자출산휴가.종료일 + ' (총 ' + data.배우자출산휴가.총일수 + '일)\\n';
-            }
-            
-            content += '- 육아휴직: ' + data.육아휴직.시작일 + ' ~ ' + data.육아휴직.종료일 + ' (총 ' + data.육아휴직.총일수 + '일)\\n\\n';
-            content += '계산일시: ' + data.계산일시 + '\\n\\n';
-            content += '※ 본 서식은 2025년 법령을 기준으로 자동 계산된 결과입니다.\\n';
-            content += '※ 실제 신청 시에는 소속 기관의 규정을 확인하시기 바랍니다.';
-            
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-            alert('신청서가 다운로드되었습니다.');
         }
     </script>
 </body>
